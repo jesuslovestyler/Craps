@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>Craps</title>
+<style>
+  :root{
+    --bg:#101613; --panel:#17201b; --ink:#f3efe4; --muted:#b9bfae;
+    --felt:#17603a; --felt2:#0f4a2b; --line:#e8d9a0; --gold:#e9c35b;
+    --chip:#fdfdf8; --red:#c0392b; --accent:#e9c35b; --danger:#e07a5f;
+    --card:#1d2921;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#e9e6da; --panel:#f7f4ea; --ink:#1d241d; --muted:#5a6353; --card:#ffffff; }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{ max-width:860px; margin:0 auto; padding:14px 14px 40px; }
+  .topbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .home-pill{
+    display:inline-block; text-decoration:none; color:var(--ink);
+    border:1.5px solid var(--gold); border-radius:999px; padding:7px 16px;
+    font-weight:700; font-size:.95rem; background:var(--panel);
+  }
+  .balance-box{
+    margin-left:auto; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .balance{ font-size:1.15rem; font-weight:800; }
+  .balance small{ display:block; font-size:.68rem; font-weight:600; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+  .icon-btn{
+    border:1.5px solid var(--gold); background:var(--panel); color:var(--ink);
+    border-radius:999px; padding:7px 14px; font-size:.9rem; font-weight:700; cursor:pointer;
+  }
+  h1{
+    font-family:Georgia, "Times New Roman", serif; font-size:2rem; margin:14px 0 2px;
+    letter-spacing:.01em;
+  }
+  .fun-line{ color:var(--muted); margin:0 0 12px; font-size:.95rem; }
+  .phase-banner{
+    background:linear-gradient(180deg, var(--felt), var(--felt2));
+    border:2px solid var(--line); border-radius:14px; color:#fdfbef;
+    padding:12px 16px; text-align:center;
+  }
+  .phase-banner .phase{ font-family:Georgia, serif; font-size:1.3rem; font-weight:700; }
+  .phase-banner .sub{ font-size:.92rem; opacity:.92; margin-top:2px; }
+  .puck{
+    display:inline-block; min-width:52px; padding:2px 10px; border-radius:999px;
+    background:#fdfbef; color:#14351f; font-weight:800; margin-left:8px; font-size:1rem;
+    vertical-align:middle;
+  }
+  .puck.off{ background:#3a3a3a; color:#ddd; }
+  .dice-row{
+    display:flex; align-items:center; justify-content:center; gap:22px; margin:18px 0 6px; flex-wrap:wrap;
+  }
+  .die{
+    width:84px; height:84px; background:#fdfdf8; border-radius:14px;
+    box-shadow:0 4px 10px rgba(0,0,0,.35), inset 0 0 0 2px #d8d8ce;
+    display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+    padding:11px; gap:2px;
+  }
+  .die .pip{ border-radius:50%; }
+  .die .pip.on{ background:#20242a; }
+  .die.red .pip.on{ background:var(--red); }
+  .die.tumbling{ animation:tumble .16s linear infinite; }
+  @keyframes tumble{
+    0%{ transform:rotate(-7deg) translateY(0); }
+    50%{ transform:rotate(6deg) translateY(-7px); }
+    100%{ transform:rotate(-5deg) translateY(1px); }
+  }
+  @media (prefers-reduced-motion: reduce){ .die.tumbling{ animation:none; } }
+  .message{
+    text-align:center; min-height:1.5em; font-size:1.05rem; font-weight:600; margin:8px 0 2px;
+  }
+  .history{
+    display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:8px 0 4px; min-height:30px;
+  }
+  .history span{
+    min-width:30px; text-align:center; padding:3px 6px; border-radius:8px;
+    background:var(--card); border:1px solid var(--muted); font-weight:700; font-size:.85rem;
+  }
+  .history span.seven{ border-color:var(--danger); color:var(--danger); }
+  .history span.pt{ border-color:var(--gold); }
+  .controls{ text-align:center; margin:12px 0 4px; }
+  .roll-btn{
+    background:var(--gold); color:#231a02; border:none; border-radius:999px;
+    font-size:1.25rem; font-weight:800; padding:14px 52px; cursor:pointer;
+    box-shadow:0 3px 0 #a67f1e;
+  }
+  .roll-btn:active{ transform:translateY(2px); box-shadow:none; }
+  .roll-btn:disabled{ opacity:.55; cursor:default; }
+  .chip-row{
+    display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:16px 0 6px; align-items:center;
+  }
+  .chip-row .lbl{ font-size:.85rem; color:var(--muted); font-weight:700; }
+  .chip{
+    width:56px; height:56px; border-radius:50%; border:5px dashed rgba(0,0,0,.18);
+    font-weight:800; font-size:.95rem; cursor:pointer; color:#fff;
+    box-shadow:0 2px 5px rgba(0,0,0,.35);
+  }
+  .chip.c10{ background:#2f6db3; } .chip.c25{ background:#2e8b57; }
+  .chip.c50{ background:#333740; } .chip.c100{ background:#8e44ad; }
+  .chip.sel{ outline:3.5px solid var(--gold); outline-offset:2px; transform:scale(1.08); }
+  .table{
+    background:linear-gradient(180deg, var(--felt), var(--felt2));
+    border:2px solid var(--line); border-radius:18px; padding:14px;
+    margin-top:12px; color:#fdfbef;
+  }
+  .table h2{ font-family:Georgia, serif; font-size:1.05rem; margin:2px 0 10px; text-align:center; letter-spacing:.04em; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:560px){ .grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:380px){ .grid{ grid-template-columns:1fr; } }
+  .spot{
+    position:relative; border:2px solid rgba(253,251,239,.75); border-radius:12px;
+    padding:10px 10px 12px; cursor:pointer; background:rgba(0,0,0,.12); text-align:center;
+    user-select:none; -webkit-user-select:none;
+  }
+  .spot:hover{ background:rgba(255,255,255,.08); }
+  .spot.disabled{ opacity:.45; cursor:not-allowed; }
+  .spot .name{ font-weight:800; font-size:1rem; letter-spacing:.02em; }
+  .spot .pay{ font-size:.78rem; opacity:.85; margin-top:2px; }
+  .spot .amt{
+    display:none; margin:8px auto 0; background:var(--gold); color:#231a02;
+    font-weight:800; border-radius:999px; padding:3px 12px; font-size:.9rem; width:max-content;
+  }
+  .spot.has-bet .amt{ display:block; }
+  .spot .clear{
+    position:absolute; top:5px; right:5px; width:26px; height:26px; border-radius:50%;
+    border:1.5px solid rgba(253,251,239,.8); background:rgba(0,0,0,.35); color:#fff;
+    font-size:.85rem; line-height:1; cursor:pointer; display:none; padding:0;
+  }
+  .spot.has-bet.can-clear .clear{ display:block; }
+  .spot.wide{ grid-column:1 / -1; }
+  .comes-area{ margin-top:12px; }
+  .come-item{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    border:1.5px solid rgba(253,251,239,.6); border-radius:10px; padding:8px 10px; margin-top:8px;
+    background:rgba(0,0,0,.15); font-size:.92rem;
+  }
+  .come-item b{ font-size:1rem; }
+  .mini-btn{
+    border:1.5px solid var(--gold); background:transparent; color:#fdfbef;
+    border-radius:999px; padding:4px 12px; font-weight:700; font-size:.82rem; cursor:pointer;
+  }
+  .mini-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .toggle-row{
+    display:flex; align-items:center; gap:10px; justify-content:center; margin-top:12px;
+    font-size:.9rem; flex-wrap:wrap; text-align:center;
+  }
+  .toggle-row button{
+    border:1.5px solid var(--line); border-radius:999px; background:rgba(0,0,0,.25); color:#fdfbef;
+    padding:5px 14px; font-weight:700; cursor:pointer;
+  }
+  .stats{
+    display:flex; gap:18px; flex-wrap:wrap; justify-content:center; margin:16px 0 4px;
+    color:var(--muted); font-size:.92rem;
+  }
+  .stats b{ color:var(--ink); }
+  .fresh{ text-align:center; margin-top:10px; display:none; }
+  .fresh.show{ display:block; }
+  .fresh button{
+    background:var(--gold); color:#231a02; border:none; border-radius:999px;
+    padding:11px 30px; font-weight:800; font-size:1rem; cursor:pointer;
+  }
+  details.rules{
+    margin-top:20px; background:var(--panel); border:1px solid var(--muted);
+    border-radius:12px; padding:12px 16px;
+  }
+  details.rules summary{ font-weight:800; font-size:1.02rem; cursor:pointer; }
+  details.rules h3{ margin:14px 0 4px; font-size:.98rem; }
+  details.rules p, details.rules li{ font-size:.93rem; line-height:1.45; }
+  details.rules ul{ margin:4px 0 8px; padding-left:20px; }
+  .note{ color:var(--muted); font-size:.88rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="home-pill" href="https://jesuslovestyler.com/">⌂ Home</a>
+    <div class="balance-box">
+      <div class="balance"><small>Play chips</small><span id="balance">1,000</span></div>
+      <button class="icon-btn" id="soundBtn" type="button" aria-label="Toggle sound">🔊 Sound on</button>
+    </div>
+  </div>
+
+  <h1>Craps</h1>
+  <p class="fun-line">You&rsquo;re the shooter at a solo table against the house. Just for fun — play chips, no real money.</p>
+
+  <div class="phase-banner">
+    <span class="phase" id="phaseText">Come-Out Roll</span><span class="puck off" id="puck">OFF</span>
+    <div class="sub" id="phaseSub">Roll a 7 or 11 to win on the Pass Line — 2, 3, or 12 is craps.</div>
+  </div>
+
+  <div class="dice-row">
+    <div class="die" id="die1" aria-label="Die one"></div>
+    <div class="die red" id="die2" aria-label="Die two"></div>
+  </div>
+  <div class="message" id="message" role="status">Pick a chip, tap a spot to bet, then roll the dice.</div>
+  <div class="history" id="history" aria-label="Recent rolls"></div>
+
+  <div class="controls">
+    <button class="roll-btn" id="rollBtn" type="button">🎲 Roll</button>
+  </div>
+
+  <div class="chip-row" role="group" aria-label="Choose chip size">
+    <span class="lbl">CHIP</span>
+    <button class="chip c10" type="button" data-chip="10">10</button>
+    <button class="chip c25 sel" type="button" data-chip="25">25</button>
+    <button class="chip c50" type="button" data-chip="50">50</button>
+    <button class="chip c100" type="button" data-chip="100">100</button>
+  </div>
+
+  <div class="table">
+    <h2>— THE TABLE —</h2>
+    <div class="grid">
+      <div class="spot" data-spot="pass" tabindex="0">
+        <button class="clear" type="button" data-clear="pass" aria-label="Take down Pass Line bet">✕</button>
+        <div class="name">PASS LINE</div><div class="pay">Pays 1:1</div>
+        <div class="amt" data-amt="pass"></div>
+      </div>
+      <div class="spot" data-spot="dontpass" tabindex="0">
+        <button class="clear" type="button" data-clear="dontpass" aria-label="Take down Don't Pass bet">✕</button>
+        <div class="name">DON&rsquo;T PASS</div><div class="pay">Pays 1:1 · 12 pushes</div>
+        <div class="amt" data-amt="dontpass"></div>
+      </div>
+      <div class="spot" data-spot="passodds" tabindex="0">
+        <button class="clear" type="button" data-clear="passodds" aria-label="Take down Odds bet">✕</button>
+        <div class="name">ODDS (behind Pass)</div><div class="pay">True odds · up to 3× your Pass bet</div>
+        <div class="amt" data-amt="passodds"></div>
+      </div>
+      <div class="spot" data-spot="come" tabindex="0">
+        <button class="clear" type="button" data-clear="come" aria-label="Take down Come bet">✕</button>
+        <div class="name">COME</div><div class="pay">Next roll is its come-out · pays 1:1</div>
+        <div class="amt" data-amt="come"></div>
+      </div>
+      <div class="spot" data-spot="place6" tabindex="0">
+        <button class="clear" type="button" data-clear="place6" aria-label="Take down Place 6 bet">✕</button>
+        <div class="name">PLACE 6</div><div class="pay">Pays 7:6 · off on come-out</div>
+        <div class="amt" data-amt="place6"></div>
+      </div>
+      <div class="spot" data-spot="place8" tabindex="0">
+        <button class="clear" type="button" data-clear="place8" aria-label="Take down Place 8 bet">✕</button>
+        <div class="name">PLACE 8</div><div class="pay">Pays 7:6 · off on come-out</div>
+        <div class="amt" data-amt="place8"></div>
+      </div>
+      <div class="spot wide" data-spot="field" tabindex="0">
+        <button class="clear" type="button" data-clear="field" aria-label="Take down Field bet">✕</button>
+        <div class="name">FIELD</div><div class="pay">One roll: 2, 3, 4, 9, 10, 11, 12 win · 2 &amp; 12 pay 2:1, rest 1:1</div>
+        <div class="amt" data-amt="field"></div>
+      </div>
+      <div class="spot" data-spot="hard4" tabindex="0">
+        <button class="clear" type="button" data-clear="hard4" aria-label="Take down Hard 4 bet">✕</button>
+        <div class="name">HARD 4</div><div class="pay">2+2 · pays 7:1</div>
+        <div class="amt" data-amt="hard4"></div>
+      </div>
+      <div class="spot" data-spot="hard10" tabindex="0">
+        <button class="clear" type="button" data-clear="hard10" aria-label="Take down Hard 10 bet">✕</button>
+        <div class="name">HARD 10</div><div class="pay">5+5 · pays 7:1</div>
+        <div class="amt" data-amt="hard10"></div>
+      </div>
+      <div class="spot" data-spot="hard6" tabindex="0">
+        <button class="clear" type="button" data-clear="hard6" aria-label="Take down Hard 6 bet">✕</button>
+        <div class="name">HARD 6</div><div class="pay">3+3 · pays 9:1</div>
+        <div class="amt" data-amt="hard6"></div>
+      </div>
+      <div class="spot" data-spot="hard8" tabindex="0">
+        <button class="clear" type="button" data-clear="hard8" aria-label="Take down Hard 8 bet">✕</button>
+        <div class="name">HARD 8</div><div class="pay">4+4 · pays 9:1</div>
+        <div class="amt" data-amt="hard8"></div>
+      </div>
+    </div>
+
+    <div class="comes-area" id="comesArea"></div>
+
+    <div class="toggle-row">
+      <span>Place bets on the come-out roll:</span>
+      <button type="button" id="placeToggle">OFF (tap to turn on)</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <span>Rolls <b id="statRolls">0</b></span>
+    <span>Rounds <b id="statRounds">0</b></span>
+    <span>Biggest win (one roll) <b id="statBig">0</b></span>
+    <span>On the table <b id="statTable">0</b></span>
+  </div>
+  <div class="fresh" id="freshBox">
+    <p class="note">Out of chips — the house is happy to stake you again.</p>
+    <button type="button" id="freshBtn">Fresh stack — 1,000 chips</button>
+  </div>
+
+  <details class="rules">
+    <summary>How it works &amp; payouts</summary>
+    <p>You are the shooter. A round has two phases. On the <b>come-out roll</b>, a 7 or 11 is a &ldquo;natural,&rdquo; 2, 3, or 12 is &ldquo;craps,&rdquo; and any other total (4, 5, 6, 8, 9, 10) becomes <b>the point</b>. In the point phase you keep rolling: the point wins, a 7 (&ldquo;seven-out&rdquo;) ends the round, and everything else just rolls again.</p>
+    <h3>The bets</h3>
+    <ul>
+      <li><b>Pass Line — pays 1:1.</b> Bet before the come-out. Wins on a natural (7/11), loses on craps (2/3/12). If a point is set, wins when the point repeats before a 7. Once the point is set, a Pass bet cannot be taken down (that is a real craps rule, enforced here).</li>
+      <li><b>Don&rsquo;t Pass — pays 1:1.</b> The mirror image: loses on 7/11, wins on 2 or 3, and <b>12 pushes</b> (your stake comes back). In the point phase it wins on a 7 and loses if the point repeats. Like Pass, it is locked in once the point is set at this table.</li>
+      <li><b>Odds — true odds, up to 3× the flat bet.</b> Once a point exists, you may add an Odds bet behind your Pass bet (or behind a moved Come bet, using its &ldquo;+ Odds&rdquo; button). Odds pay the true mathematical odds with no house edge: point 4 or 10 pays <b>2:1</b>, 5 or 9 pays <b>3:2</b>, 6 or 8 pays <b>6:5</b>. Odds can be taken down at any time.</li>
+      <li><b>Come — pays 1:1.</b> Placed during the point phase. The very next roll is that bet&rsquo;s own come-out: 7 or 11 wins, 2/3/12 loses, and any other total becomes that bet&rsquo;s own number — it then wins if its number repeats before a 7. A Come bet is a contract bet and cannot be taken down once placed (its odds can). Two honest house rules here: <b>(1)</b> a Come bet placed just before a seven-out roll still wins on that 7, because 7 is a natural for the new bet even as it ends the Pass round; <b>(2)</b> on the come-out roll of a <i>new</i> Pass round, existing Come bets stay working for the flat bet (a 7 loses them, their number repeating wins them) but their <b>odds are OFF</b> — odds neither win nor lose on that roll, and are handed back if the flat bet settles.</li>
+      <li><b>Field — one roll.</b> Wins if the next roll is 2, 3, 4, 9, 10, 11, or 12. Pays 1:1, except 2 and 12 pay <b>2:1</b>. Loses on 5, 6, 7, 8.</li>
+      <li><b>Hardways — Hard 4 &amp; 10 pay 7:1; Hard 6 &amp; 8 pay 9:1.</b> A hardway wins when its pair rolls (3+3 for Hard 6, and so on) before a 7 or the &ldquo;easy&rdquo; version of the same number. Hardways are <b>always working</b>, including on the come-out. When a hardway hits, the profit is paid and the bet stays up riding; take it down any time with its ✕ button.</li>
+      <li><b>Place 6 &amp; Place 8 — pay 7:6</b> (rounded to the nearest chip). The bet wins a payout each time its number rolls before a 7 during the point phase, and the bet itself stays up. Place bets are <b>OFF on the come-out roll by default</b> — a come-out 7 or the number itself neither wins nor loses them — unless you turn them on with the toggle on the table.</li>
+    </ul>
+    <h3>Good to know</h3>
+    <ul>
+      <li>Tap a spot with a chip selected to add that chip to the bet. The ✕ on a spot takes the bet down and returns your chips, where the rules above allow it.</li>
+      <li>Press <b>Space</b> to roll. Starting stack is 1,000 play chips; when you are broke and nothing is on the table, a Fresh stack button appears.</li>
+      <li>Your balance, bets, and stats are remembered on this device between visits. Play chips only — no real money, ever.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "craps-v1";
+  var POINT_NUMS = [4,5,6,8,9,10];
+  var FIELD_WINS = [2,3,4,9,10,11,12];
+
+  function defaults(){
+    return {
+      balance: 1000, phase: "comeout", point: null,
+      pass: 0, passOdds: 0, dontPass: 0,
+      comeStage: 0, comes: [],
+      field: 0,
+      hard: { "4":0, "6":0, "8":0, "10":0 },
+      place6: 0, place8: 0,
+      placeOnComeout: false,
+      stats: { rolls:0, rounds:0, biggestWin:0 },
+      history: [], lastDice: [3,4]
+    };
+  }
+  var S = defaults();
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.balance === "number") {
+        var d = defaults();
+        for (var k in d) { if (parsed[k] !== undefined) d[k] = parsed[k]; }
+        S = d;
+      }
+    }
+  } catch(e) {}
+
+  var chip = 25;
+  var rolling = false;
+  var forced = null;
+  var soundOn = true;
+  var actx = null;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var balanceEl=$("balance"), phaseText=$("phaseText"), phaseSub=$("phaseSub"), puck=$("puck"),
+      msgEl=$("message"), histEl=$("history"), rollBtn=$("rollBtn"),
+      die1=$("die1"), die2=$("die2");
+
+  function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+  function trueMult(n){
+    if (n===4||n===10) return 2;
+    if (n===5||n===9) return 1.5;
+    return 1.2; // 6, 8 -> 6:5
+  }
+  function totalOnTable(){
+    var t = S.pass+S.passOdds+S.dontPass+S.comeStage+S.field+S.place6+S.place8;
+    for (var n in S.hard) t += S.hard[n];
+    S.comes.forEach(function(c){ t += c.amt + c.odds; });
+    return t;
+  }
+
+  /* ---------- audio ---------- */
+  function ac(){
+    if (!actx) { try { actx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+    if (actx && actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function rattle(){
+    if (!soundOn) return; var c = ac(); if (!c) return;
+    var t0 = c.currentTime;
+    for (var i=0;i<4;i++){
+      var dur = 0.05, buf = c.createBuffer(1, c.sampleRate*dur, c.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var j=0;j<data.length;j++) data[j] = (Math.random()*2-1) * (1 - j/data.length);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var g = c.createGain(); g.gain.value = 0.12;
+      var f = c.createBiquadFilter(); f.type="bandpass"; f.frequency.value = 1800 + Math.random()*800;
+      src.connect(f); f.connect(g); g.connect(c.destination);
+      src.start(t0 + i*0.13);
+    }
+  }
+  function sting(win){
+    if (!soundOn) return; var c = ac(); if (!c) return;
+    var notes = win ? [523.25, 783.99] : [220, 174.61];
+    notes.forEach(function(fr, i){
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = fr;
+      g.gain.setValueAtTime(0.0001, c.currentTime + i*0.12);
+      g.gain.exponentialRampToValueAtTime(0.08, c.currentTime + i*0.12 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + i*0.12 + 0.35);
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime + i*0.12); o.stop(c.currentTime + i*0.12 + 0.4);
+    });
+  }
+
+  /* ---------- dice faces ---------- */
+  var PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  function drawDie(el, v){
+    var html = "";
+    for (var i=0;i<9;i++) html += '<div class="pip'+(PIPS[v].indexOf(i)>=0?" on":"")+'"></div>';
+    el.innerHTML = html;
+  }
+
+  /* ---------- betting ---------- */
+  function say(t){ msgEl.textContent = t; }
+  function canAfford(a){ return S.balance >= a; }
+
+  function betError(t){ say(t); }
+
+  function spotLocked(spot){
+    if (rolling) return "The dice are rolling.";
+    switch(spot){
+      case "pass": case "dontpass":
+        if (S.phase !== "comeout") return "Line bets are placed on the come-out roll — the point is already set.";
+        return null;
+      case "passodds":
+        if (S.phase !== "point" || !S.point) return "Odds need a point first.";
+        if (S.pass <= 0) return "Odds go behind a Pass Line bet — place one next round.";
+        if (S.passOdds + chip > 3*S.pass) return "Odds are capped at 3× your Pass bet (" + fmt(3*S.pass) + ").";
+        return null;
+      case "come":
+        if (S.phase !== "point") return "Come bets are placed while a point is on.";
+        return null;
+      default: return null;
+    }
+  }
+
+  function addBet(spot){
+    var lock = spotLocked(spot);
+    if (lock) { betError(lock); return; }
+    if (!canAfford(chip)) { betError("Not enough chips for a " + chip + " chip — pick a smaller one or clear a bet."); return; }
+    S.balance -= chip;
+    switch(spot){
+      case "pass": S.pass += chip; say("Pass Line bet: " + fmt(S.pass) + " chips."); break;
+      case "dontpass": S.dontPass += chip; say("Don't Pass bet: " + fmt(S.dontPass) + " chips."); break;
+      case "passodds": S.passOdds += chip; say("Odds behind Pass: " + fmt(S.passOdds) + " chips."); break;
+      case "come": S.comeStage += chip; say("Come bet set: " + fmt(S.comeStage) + " chips. The next roll is its come-out."); break;
+      case "field": S.field += chip; say("Field bet: " + fmt(S.field) + " chips — one roll only."); break;
+      case "place6": S.place6 += chip; say("Place 6: " + fmt(S.place6) + " chips."); break;
+      case "place8": S.place8 += chip; say("Place 8: " + fmt(S.place8) + " chips."); break;
+      case "hard4": S.hard["4"] += chip; say("Hard 4: " + fmt(S.hard["4"]) + " chips."); break;
+      case "hard6": S.hard["6"] += chip; say("Hard 6: " + fmt(S.hard["6"]) + " chips."); break;
+      case "hard8": S.hard["8"] += chip; say("Hard 8: " + fmt(S.hard["8"]) + " chips."); break;
+      case "hard10": S.hard["10"] += chip; say("Hard 10: " + fmt(S.hard["10"]) + " chips."); break;
+    }
+    save(); render();
+  }
+
+  function clearAllowed(spot){
+    switch(spot){
+      case "pass": return S.phase === "comeout";
+      case "dontpass": return S.phase === "comeout";
+      case "passodds": return true;
+      case "come": return true; // staging only; moved come bets are contract
+      default: return true;
+    }
+  }
+  function clearBet(spot){
+    if (rolling) return;
+    if (!clearAllowed(spot)) { say("That bet is locked in once the point is set — it rides until the round ends."); return; }
+    var amt = 0;
+    switch(spot){
+      case "pass": amt=S.pass; S.pass=0; if (S.passOdds>0){ S.balance+=S.passOdds; amt+=0; S.passOdds=0; } break;
+      case "dontpass": amt=S.dontPass; S.dontPass=0; break;
+      case "passodds": amt=S.passOdds; S.passOdds=0; break;
+      case "come": amt=S.comeStage; S.comeStage=0; break;
+      case "field": amt=S.field; S.field=0; break;
+      case "place6": amt=S.place6; S.place6=0; break;
+      case "place8": amt=S.place8; S.place8=0; break;
+      case "hard4": amt=S.hard["4"]; S.hard["4"]=0; break;
+      case "hard6": amt=S.hard["6"]; S.hard["6"]=0; break;
+      case "hard8": amt=S.hard["8"]; S.hard["8"]=0; break;
+      case "hard10": amt=S.hard["10"]; S.hard["10"]=0; break;
+    }
+    if (amt>0){ S.balance += amt; say("Bet taken down — " + fmt(amt) + " chips back."); }
+    save(); render();
+  }
+
+  function comeOddsAdd(idx){
+    if (rolling) return;
+    var c = S.comes[idx]; if (!c) return;
+    if (c.odds + chip > 3*c.amt) { say("Come odds are capped at 3× the flat bet."); return; }
+    if (!canAfford(chip)) { say("Not enough chips."); return; }
+    S.balance -= chip; c.odds += chip;
+    say("Odds on Come " + c.n + ": " + fmt(c.odds) + " chips.");
+    save(); render();
+  }
+  function comeOddsClear(idx){
+    if (rolling) return;
+    var c = S.comes[idx]; if (!c) return;
+    if (c.odds>0){ S.balance += c.odds; c.odds = 0; say("Come " + c.n + " odds taken down."); }
+    save(); render();
+  }
+
+  /* ---------- rolling & settling ---------- */
+  function rollDice(){
+    if (rolling) return;
+    rolling = true; rollBtn.disabled = true;
+    rattle();
+    die1.classList.add("tumbling"); die2.classList.add("tumbling");
+    var finalDice;
+    if (forced) { finalDice = forced; forced = null; }
+    else finalDice = [1+Math.floor(Math.random()*6), 1+Math.floor(Math.random()*6)];
+    var ticks = 0;
+    var iv = setInterval(function(){
+      drawDie(die1, 1+Math.floor(Math.random()*6));
+      drawDie(die2, 1+Math.floor(Math.random()*6));
+      ticks++;
+      if (ticks >= 8){
+        clearInterval(iv);
+        die1.classList.remove("tumbling"); die2.classList.remove("tumbling");
+        drawDie(die1, finalDice[0]); drawDie(die2, finalDice[1]);
+        rolling = false; rollBtn.disabled = false;
+        settle(finalDice[0], finalDice[1]);
+      }
+    }, 100);
+  }
+
+  function settle(d1, d2){
+    var t = d1 + d2;
+    var isHard = d1 === d2;
+    var wasPhase = S.phase, wasPoint = S.point;
+    var notes = [];
+    var net = 0; // profit (+) / loss (-) across this roll
+
+    S.stats.rolls++;
+    S.lastDice = [d1, d2];
+    S.history.unshift(t); if (S.history.length > 14) S.history.length = 14;
+
+    /* FIELD — one roll */
+    if (S.field > 0){
+      var f = S.field; S.field = 0;
+      if (FIELD_WINS.indexOf(t) >= 0){
+        var fm = (t===2 || t===12) ? 2 : 1;
+        S.balance += f + f*fm; net += f*fm;
+        notes.push("Field wins " + fmt(f*fm) + (fm===2 ? " (2:1 on the " + t + ")" : "") + ".");
+      } else { net -= f; notes.push("Field loses on " + t + "."); }
+    }
+
+    /* HARDWAYS — always working */
+    [4,6,8,10].forEach(function(n){
+      var a = S.hard[String(n)];
+      if (a <= 0) return;
+      if (t === n && isHard){
+        var hm = (n===6||n===8) ? 9 : 7;
+        S.balance += a*hm; net += a*hm;
+        notes.push("Hard " + n + " hits! +" + fmt(a*hm) + " — bet stays up.");
+      } else if (t === n || t === 7){
+        S.hard[String(n)] = 0; net -= a;
+        notes.push("Hard " + n + " loses to the " + (t===7 ? "7" : "easy " + n) + ".");
+      }
+    });
+
+    /* MOVED COME BETS (before staging, so a just-moved bet can't win on the same roll) */
+    if (S.comes.length){
+      var survivors = [];
+      S.comes.forEach(function(c){
+        var settled = false;
+        if (wasPhase === "comeout"){
+          // flat working, odds OFF
+          if (t === c.n){
+            S.balance += c.amt*2 + c.odds; net += c.amt; settled = true;
+            notes.push("Come " + c.n + " wins on the come-out (flat only; odds were off and handed back).");
+          } else if (t === 7){
+            S.balance += c.odds; net -= c.amt; settled = true;
+            notes.push("Come " + c.n + " loses its flat bet to the come-out 7; its odds were off and came back.");
+          }
+        } else {
+          if (t === c.n){
+            var op = c.odds * trueMult(c.n);
+            S.balance += c.amt*2 + c.odds + op; net += c.amt + op; settled = true;
+            notes.push("Come " + c.n + " wins! +" + fmt(c.amt + op) + ".");
+          } else if (t === 7){
+            net -= (c.amt + c.odds); settled = true;
+            notes.push("Come " + c.n + " loses to the 7.");
+          }
+        }
+        if (!settled) survivors.push(c);
+      });
+      S.comes = survivors;
+    }
+
+    /* STAGING COME BET — this roll is its come-out */
+    if (S.comeStage > 0){
+      var st = S.comeStage;
+      if (t === 7 || t === 11){
+        S.balance += st*2; net += st; S.comeStage = 0;
+        notes.push("New Come bet wins on the " + t + " — +" + fmt(st) + ".");
+      } else if (t === 2 || t === 3 || t === 12){
+        net -= st; S.comeStage = 0;
+        notes.push("New Come bet loses to craps (" + t + ").");
+      } else {
+        var ex = null;
+        S.comes.forEach(function(c){ if (c.n === t) ex = c; });
+        if (ex) ex.amt += st; else S.comes.push({ n:t, amt:st, odds:0 });
+        S.comeStage = 0;
+        notes.push("Come bet moves to " + t + " — it wins if " + t + " repeats before a 7.");
+      }
+    }
+
+    /* PLACE 6 / 8 */
+    var placeWorking = (wasPhase === "point") || S.placeOnComeout;
+    [["6", "place6"], ["8", "place8"]].forEach(function(pair){
+      var n = Number(pair[0]), key = pair[1], a = S[key];
+      if (a <= 0 || !placeWorking) return;
+      if (t === n){
+        var pp = Math.round(a * 7/6);
+        S.balance += pp; net += pp;
+        notes.push("Place " + n + " pays " + fmt(pp) + " (7:6) — bet stays up.");
+      } else if (t === 7){
+        S[key] = 0; net -= a;
+        notes.push("Place " + n + " loses to the 7.");
+      }
+    });
+
+    /* PASS / DON'T PASS + phase change */
+    var head = "";
+    if (wasPhase === "comeout"){
+      if (t === 7 || t === 11){
+        head = "Shooter rolls " + t + " — natural! Pass Line wins.";
+        if (S.pass > 0){ S.balance += S.pass*2; net += S.pass; S.pass = 0; S.passOdds = 0; }
+        if (S.dontPass > 0){ net -= S.dontPass; S.dontPass = 0; }
+      } else if (t === 2 || t === 3 || t === 12){
+        head = "Shooter rolls " + t + " — craps. Pass Line loses" + (t===12 ? "; Don't Pass pushes on 12." : ", Don't Pass wins.");
+        if (S.pass > 0){ net -= S.pass; S.pass = 0; S.passOdds = 0; }
+        if (S.dontPass > 0){
+          if (t === 12){ S.balance += S.dontPass; }
+          else { S.balance += S.dontPass*2; net += S.dontPass; }
+          S.dontPass = 0;
+        }
+      } else {
+        S.point = t; S.phase = "point";
+        head = "Shooter rolls " + t + " — point is " + t + ".";
+      }
+    } else { // point phase
+      if (t === wasPoint){
+        head = "Shooter rolls " + t + " — the point! Pass Line wins.";
+        if (S.pass > 0){
+          var opay = S.passOdds * trueMult(wasPoint);
+          S.balance += S.pass*2 + S.passOdds + opay; net += S.pass + opay;
+        }
+        if (S.dontPass > 0){ net -= S.dontPass; }
+        S.pass = 0; S.passOdds = 0; S.dontPass = 0;
+        S.phase = "comeout"; S.point = null; S.stats.rounds++;
+      } else if (t === 7){
+        head = "Seven out — the round ends. Pass Line loses, Don't Pass wins.";
+        if (S.pass > 0 || S.passOdds > 0){ net -= (S.pass + S.passOdds); }
+        if (S.dontPass > 0){ S.balance += S.dontPass*2; net += S.dontPass; }
+        S.pass = 0; S.passOdds = 0; S.dontPass = 0;
+        S.phase = "comeout"; S.point = null; S.stats.rounds++;
+      } else {
+        head = "Shooter rolls " + t + (isHard && POINT_NUMS.indexOf(t)>=0 ? " (hard)" : "") + " — no decision. Point is still " + wasPoint + ".";
+      }
+    }
+
+    if (net > S.stats.biggestWin) S.stats.biggestWin = Math.round(net);
+    say(head + (notes.length ? " " + notes.join(" ") : ""));
+    if (net > 0) sting(true); else if (net < 0) sting(false);
+    save(); render();
+  }
+
+  /* ---------- render ---------- */
+  function renderSpot(spot, amt){
+    var el = document.querySelector('[data-spot="'+spot+'"]');
+    if (!el) return;
+    var amtEl = el.querySelector("[data-amt]");
+    amtEl.textContent = amt > 0 ? fmt(amt) + " chips" : "";
+    el.classList.toggle("has-bet", amt > 0);
+    el.classList.toggle("can-clear", amt > 0 && clearAllowed(spot));
+    el.classList.toggle("disabled", !!spotLocked(spot) && amt === 0 && spot !== "field" && spot.indexOf("hard") !== 0 && spot.indexOf("place") !== 0);
+  }
+  function render(){
+    balanceEl.textContent = fmt(S.balance);
+    drawDie(die1, S.lastDice[0]); drawDie(die2, S.lastDice[1]);
+    if (S.phase === "comeout"){
+      phaseText.textContent = "Come-Out Roll";
+      puck.textContent = "OFF"; puck.classList.add("off");
+      phaseSub.textContent = "Roll a 7 or 11 to win on the Pass Line — 2, 3, or 12 is craps.";
+    } else {
+      phaseText.textContent = "Point is " + S.point;
+      puck.textContent = "ON · " + S.point; puck.classList.remove("off");
+      phaseSub.textContent = "Roll a " + S.point + " to win — a 7 is seven-out and ends the round.";
+    }
+    renderSpot("pass", S.pass);
+    renderSpot("dontpass", S.dontPass);
+    renderSpot("passodds", S.passOdds);
+    renderSpot("come", S.comeStage);
+    renderSpot("field", S.field);
+    renderSpot("place6", S.place6);
+    renderSpot("place8", S.place8);
+    renderSpot("hard4", S.hard["4"]);
+    renderSpot("hard6", S.hard["6"]);
+    renderSpot("hard8", S.hard["8"]);
+    renderSpot("hard10", S.hard["10"]);
+
+    var ca = $("comesArea");
+    if (S.comes.length){
+      var html = '<div style="font-weight:800; margin-top:4px;">Your Come bets on numbers:</div>';
+      S.comes.forEach(function(c, i){
+        html += '<div class="come-item"><b>Come ' + c.n + '</b><span>flat ' + fmt(c.amt) + '</span>' +
+          '<span>odds ' + fmt(c.odds) + ' / max ' + fmt(3*c.amt) + '</span>' +
+          '<button class="mini-btn" type="button" data-come-odds="' + i + '">+ Odds (' + chip + ')</button>' +
+          (c.odds > 0 ? '<button class="mini-btn" type="button" data-come-clear="' + i + '">Take odds down</button>' : '') +
+          '</div>';
+      });
+      ca.innerHTML = html;
+      ca.querySelectorAll("[data-come-odds]").forEach(function(b){
+        b.addEventListener("click", function(){ comeOddsAdd(Number(b.getAttribute("data-come-odds"))); });
+      });
+      ca.querySelectorAll("[data-come-clear]").forEach(function(b){
+        b.addEventListener("click", function(){ comeOddsClear(Number(b.getAttribute("data-come-clear"))); });
+      });
+    } else ca.innerHTML = "";
+
+    histEl.innerHTML = S.history.map(function(v){
+      var cls = v === 7 ? "seven" : (S.point === v ? "pt" : "");
+      return '<span class="'+cls+'">' + v + '</span>';
+    }).join("");
+
+    $("statRolls").textContent = fmt(S.stats.rolls);
+    $("statRounds").textContent = fmt(S.stats.rounds);
+    $("statBig").textContent = fmt(S.stats.biggestWin);
+    $("statTable").textContent = fmt(totalOnTable());
+    $("placeToggle").textContent = S.placeOnComeout ? "ON (tap to turn off)" : "OFF (tap to turn on)";
+    $("freshBox").classList.toggle("show", S.balance <= 0 && totalOnTable() === 0);
+  }
+
+  /* ---------- events ---------- */
+  document.querySelectorAll(".chip").forEach(function(b){
+    b.addEventListener("click", function(){
+      chip = Number(b.getAttribute("data-chip"));
+      document.querySelectorAll(".chip").forEach(function(x){ x.classList.toggle("sel", x === b); });
+      render();
+    });
+  });
+  document.querySelectorAll("[data-spot]").forEach(function(el){
+    el.addEventListener("click", function(e){
+      if (e.target.hasAttribute("data-clear")) return;
+      addBet(el.getAttribute("data-spot"));
+    });
+    el.addEventListener("keydown", function(e){
+      if (e.key === "Enter") { e.preventDefault(); addBet(el.getAttribute("data-spot")); }
+    });
+  });
+  document.querySelectorAll("[data-clear]").forEach(function(b){
+    b.addEventListener("click", function(e){
+      e.stopPropagation();
+      clearBet(b.getAttribute("data-clear"));
+    });
+  });
+  rollBtn.addEventListener("click", rollDice);
+  document.addEventListener("keydown", function(e){
+    if (e.code === "Space" && !e.repeat && (e.target === document.body || e.target === rollBtn)){
+      e.preventDefault(); rollDice();
+    }
+  });
+  $("placeToggle").addEventListener("click", function(){
+    S.placeOnComeout = !S.placeOnComeout;
+    say("Place bets are now " + (S.placeOnComeout ? "WORKING on the come-out roll." : "OFF on the come-out roll."));
+    save(); render();
+  });
+  $("freshBtn").addEventListener("click", function(){
+    if (S.balance <= 0 && totalOnTable() === 0){
+      S.balance = 1000; say("Fresh stack — 1,000 chips. Good luck, shooter.");
+      save(); render();
+    }
+  });
+  $("soundBtn").addEventListener("click", function(){
+    soundOn = !soundOn;
+    this.textContent = soundOn ? "🔊 Sound on" : "🔇 Sound off";
+    if (soundOn) ac();
+  });
+
+  /* Test hook: lets the audit harness force dice and read state. */
+  window.__craps = {
+    force: function(a, b){ forced = [a, b]; },
+    roll: rollDice,
+    state: function(){ return JSON.parse(JSON.stringify(S)); },
+    addBet: addBet, clearBet: clearBet
+  };
+
+  render();
+})();
+</script>
+<script data-goatcounter="https://jesuslovestyler.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
